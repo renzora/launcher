@@ -101,17 +101,8 @@ jobs:
           DESKTOP
           cp AppDir/renzora-launcher.desktop AppDir/usr/share/applications/
 
-          # Create a simple icon (placeholder — replace with real icon later)
-          convert -size 256x256 xc:'#8B6AAE' -gravity center -pointsize 120 -fill white -annotate 0 'R' AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png 2>/dev/null || \
-          python3 -c "
-          import struct, zlib
-          def png(w,h,r,g,b):
-              def chunk(t,d): return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
-              raw=b''
-              for y in range(h): raw+=b'\x00'+bytes([r,g,b]*w)
-              return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png','wb').write(png(256,256,139,106,174))
-          "
+          # Copy icon
+          cp icon.png AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png
 
           # Create AppRun
           cat > AppDir/AppRun << 'APPRUN'
