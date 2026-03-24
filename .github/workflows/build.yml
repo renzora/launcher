@@ -61,6 +61,18 @@ jobs:
         working-directory: app
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Install UPX (Windows)
+        if: runner.os == 'Windows'
+        run: choco install upx -y
+
+      - name: Install UPX (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y upx-ucl
+
+      - name: Install UPX (macOS)
+        if: runner.os == 'macOS'
+        run: brew install upx
+
       - name: Rename binary (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -71,6 +83,9 @@ jobs:
         run: |
           cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} ${{ matrix.artifact }}
           chmod +x ${{ matrix.artifact }}
+
+      - name: Compress with UPX (brute)
+        run: upx --brute ${{ matrix.artifact }} || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
