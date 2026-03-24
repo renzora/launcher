@@ -22,7 +22,7 @@ jobs:
             target: aarch64-apple-darwin
             artifact: renzora-launcher-macos-arm64
             binary: renzora-launcher
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             artifact: renzora-launcher-macos-x64
             binary: renzora-launcher
