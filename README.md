@@ -37,12 +37,15 @@ sudo apt-get install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3
 # Install frontend dependencies
 bun install
 
-# Build the Rust DLL plugins
-webarcade build launcher
-webarcade build updater
-
 # Run in dev mode (builds frontend + starts app)
 webarcade dev
+```
+
+Plugins (DLLs) are prebuilt and included in the repo. To rebuild them after making changes:
+
+```bash
+webarcade build launcher
+webarcade build updater
 ```
 
 ## Production Build

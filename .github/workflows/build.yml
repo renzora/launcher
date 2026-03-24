@@ -49,16 +49,8 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install WebArcade CLI
-        run: cargo install webarcade
-
       - name: Install dependencies
         run: bun install
-
-      - name: Build plugins
-        run: |
-          webarcade build launcher
-          webarcade build updater
 
       - name: Build frontend
         run: bun run build
