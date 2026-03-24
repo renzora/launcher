@@ -30,7 +30,7 @@ jobs:
             binary: renzora-launcher
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: renzora-launcher-linux-x64
+            artifact: renzora-launcher-linux-x64.AppImage
             binary: renzora-launcher
 
     runs-on: ${{ matrix.os }}
@@ -65,13 +65,6 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install upx -y
 
-      - name: Install UPX (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y upx-ucl
-
-      - name: Install UPX (macOS)
-        if: runner.os == 'macOS'
-        run: brew install upx
 
       # Windows: copy and compress
       - name: Package binary (Windows)
@@ -79,11 +72,62 @@ jobs:
         run: |
           cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} ${{ matrix.artifact }}
 
-      # Linux: copy, chmod, compress
-      - name: Package binary (Linux)
+      # Linux: create AppImage
+      - name: Package AppImage (Linux)
         if: runner.os == 'Linux'
         run: |
-          cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} ${{ matrix.artifact }}
+          # Download appimagetool
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+
+          # Create AppDir structure
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/share/applications
+
+          # Copy binary
+          cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} AppDir/usr/bin/renzora-launcher
+          chmod +x AppDir/usr/bin/renzora-launcher
+
+          # Create desktop entry
+          cat > AppDir/renzora-launcher.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Renzora Launcher
+          Comment=Renzora game platform and engine manager
+          Exec=renzora-launcher
+          Icon=renzora-launcher
+          Type=Application
+          Categories=Game;Development;
+          DESKTOP
+          cp AppDir/renzora-launcher.desktop AppDir/usr/share/applications/
+
+          # Create a simple icon (placeholder — replace with real icon later)
+          convert -size 256x256 xc:'#8B6AAE' -gravity center -pointsize 120 -fill white -annotate 0 'R' AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png 2>/dev/null || \
+          python3 -c "
+          import struct, zlib
+          def png(w,h,r,g,b):
+              def chunk(t,d): return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
+              raw=b''
+              for y in range(h): raw+=b'\x00'+bytes([r,g,b]*w)
+              return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
+          open('AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png','wb').write(png(256,256,139,106,174))
+          "
+
+          # Create AppRun
+          cat > AppDir/AppRun << 'APPRUN'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          exec "$HERE/usr/bin/renzora-launcher" "$@"
+          APPRUN
+          chmod +x AppDir/AppRun
+
+          # Symlink icon and desktop file to root
+          ln -sf usr/share/icons/hicolor/256x256/apps/renzora-launcher.png AppDir/renzora-launcher.png
+          ln -sf usr/share/icons/hicolor/256x256/apps/renzora-launcher.png AppDir/.DirIcon
+
+          # Build AppImage
+          ARCH=x86_64 ./appimagetool AppDir ${{ matrix.artifact }}
           chmod +x ${{ matrix.artifact }}
 
       # macOS: create .app bundle and .dmg
@@ -145,7 +189,7 @@ jobs:
           fi
 
       - name: Compress with UPX (brute)
-        if: runner.os != 'macOS'
+        if: runner.os == 'Windows'
         run: upx --brute ${{ matrix.artifact }} || true
 
       - name: Upload artifact
