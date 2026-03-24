@@ -30,10 +30,9 @@ async function generateIcon() {
 
   // Skip if ICO already exists and is newer than PNG
   if (existsSync(icoPath)) {
-    const pngStat = Bun.file(pngPath);
-    const icoStat = Bun.file(icoPath);
-    const pngTime = (await pngStat.stat()).mtime;
-    const icoTime = (await icoStat.stat()).mtime;
+    const { statSync } = await import('fs');
+    const pngTime = statSync(pngPath).mtimeMs;
+    const icoTime = statSync(icoPath).mtimeMs;
     if (icoTime > pngTime) {
       console.log('   ✓ icon.ico is up to date');
       return;
