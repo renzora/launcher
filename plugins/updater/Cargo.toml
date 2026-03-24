@@ -1,0 +1,19 @@
+[package]
+name = "updater"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+dirs = "5.0"
+
+[routes]
+"GET /check" = "handle_check_update"
+"POST /update" = "handle_update"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

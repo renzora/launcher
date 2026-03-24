@@ -1,0 +1,41 @@
+{
+  "name": "webarcade",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "High-speed development framework for web and desktop applications",
+  "scripts": {
+    "dev": "node app/scripts/dev.js",
+    "build": "node app/scripts/build.js",
+    "build:prod": "cross-env NODE_ENV=production node app/scripts/build.js",
+    "app": "bun run build:prod && cd app && cargo build --release && cargo packager --release",
+    "app:locked": "bun run build:prod && cd app && cargo build --release --features locked-plugins && cargo packager --release",
+    "app:run": "cd app/target/release && test.exe",
+    "clean": "rm -rf app/dist app/target",
+    "lint": "oxlint",
+    "package": "webarcade package",
+    "plugin:new": "webarcade new",
+    "plugin:build": "webarcade build",
+    "plugin:list": "webarcade list"
+  },
+  "dependencies": {
+    "@tabler/icons-solidjs": "^3.34.1",
+    "daisyui": "^5.0.50",
+    "solid-js": "^1.9.7",
+    "webarcade": "^0.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@swc/core": "^1.15.3",
+    "@tailwindcss/postcss": "^4.1.12",
+    "babel-preset-solid": "^1.9.9",
+    "chokidar": "^5.0.0",
+    "cross-env": "^7.0.3",
+    "cssnano": "^7.1.2",
+    "esbuild": "^0.27.0",
+    "png-to-ico": "^3.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.12",
+    "ws": "^8.18.3"
+  }
+}

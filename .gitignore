@@ -1,0 +1,57 @@
+dist
+.env
+.env*.local
+/node_modules
+
+# Plugin build artifacts
+plugins/**/*.so
+plugins/**/*.dylib
+build/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# App build artifacts
+app/target/
+app/dist/
+*.exe
+
+# Rust build artifacts
+target/
+*.node
+
+# IDE
+/.idea
+.project
+.classpath
+*.launch
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude
+CLAUDE.md
+prompt.txt
+AGENTS.md
+
+# Sensitive config files
+config/*
+!config/*.example
+!config/README.md
+*.toml
+!Cargo.toml
+!**/Cargo.toml
+!*.toml.example
+
+# SSL Certificates and private keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx

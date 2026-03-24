@@ -1,0 +1,126 @@
+{
+  "$schema": null,
+  "name": "Renzora Launcher",
+  "version": "0.1.0",
+  "defaultLayout": "launcher",
+  "plugins": {
+    "themes": {
+      "name": "themes",
+      "version": "1.0.0",
+      "description": "Theme management",
+      "author": "Renzora",
+      "path": "themes.js",
+      "hasBackend": false,
+      "hasFrontend": true,
+      "priority": 0,
+      "enabled": true,
+      "routes": []
+    },
+    "launcher": {
+      "name": "launcher",
+      "version": "0.1.0",
+      "description": "Renzora Engine version manager",
+      "author": "Renzora",
+      "path": "launcher.dll",
+      "hasBackend": true,
+      "hasFrontend": true,
+      "priority": 0,
+      "enabled": true,
+      "routes": [
+        {
+          "handler": "handle_get_config",
+          "method": "GET",
+          "path": "/config"
+        },
+        {
+          "handler": "handle_game_library",
+          "method": "GET",
+          "path": "/game-library"
+        },
+        {
+          "handler": "handle_installed",
+          "method": "GET",
+          "path": "/installed"
+        },
+        {
+          "handler": "handle_library",
+          "method": "GET",
+          "path": "/library"
+        },
+        {
+          "handler": "handle_releases",
+          "method": "GET",
+          "path": "/releases"
+        },
+        {
+          "handler": "handle_browse",
+          "method": "POST",
+          "path": "/browse"
+        },
+        {
+          "handler": "handle_set_config",
+          "method": "POST",
+          "path": "/config"
+        },
+        {
+          "handler": "handle_download",
+          "method": "POST",
+          "path": "/download"
+        },
+        {
+          "handler": "handle_install",
+          "method": "POST",
+          "path": "/install"
+        },
+        {
+          "handler": "handle_launch",
+          "method": "POST",
+          "path": "/launch"
+        },
+        {
+          "handler": "handle_login",
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "handler": "handle_logout",
+          "method": "POST",
+          "path": "/logout"
+        },
+        {
+          "handler": "handle_register",
+          "method": "POST",
+          "path": "/register"
+        },
+        {
+          "handler": "handle_uninstall",
+          "method": "POST",
+          "path": "/uninstall"
+        }
+      ]
+    },
+    "updater": {
+      "name": "updater",
+      "version": "0.1.0",
+      "description": "Launcher auto-updater",
+      "author": "Renzora",
+      "path": "updater.dll",
+      "hasBackend": true,
+      "hasFrontend": true,
+      "priority": 0,
+      "enabled": true,
+      "routes": [
+        {
+          "handler": "handle_check_update",
+          "method": "GET",
+          "path": "/check"
+        },
+        {
+          "handler": "handle_update",
+          "method": "POST",
+          "path": "/update"
+        }
+      ]
+    }
+  }
+}
