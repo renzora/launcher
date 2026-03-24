@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 mod ipc;
 mod bridge;
+mod auto_update;
 
 use bridge::core::dynamic_plugin_loader::WebArcadeConfig;
 mod plugin_installer;
@@ -79,6 +80,13 @@ fn main() {
         .try_init();
 
     log::info!("WebArcade starting...");
+
+    // Auto-update: check on startup, skip if we just updated (prevents relaunch loop)
+    let just_updated = std::env::args().any(|a| a == "--just-updated");
+    if !just_updated && auto_update::check_and_update() {
+        auto_update::relaunch();
+        // ^ exits the process, relaunches with --just-updated
+    }
 
     // Load config to get window size
     let config = load_config();
