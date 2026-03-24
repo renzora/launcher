@@ -22,11 +22,11 @@ jobs:
             binary: renzora-launcher.exe
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact: renzora-launcher-macos-arm64
+            artifact: renzora-launcher-macos-arm64.dmg
             binary: renzora-launcher
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact: renzora-launcher-macos-x64
+            artifact: renzora-launcher-macos-x64.dmg
             binary: renzora-launcher
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -73,18 +73,79 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install upx
 
-      - name: Rename binary (Windows)
+      # Windows: copy and compress
+      - name: Package binary (Windows)
         if: runner.os == 'Windows'
         run: |
           cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} ${{ matrix.artifact }}
 
-      - name: Rename binary (Unix)
-        if: runner.os != 'Windows'
+      # Linux: copy, chmod, compress
+      - name: Package binary (Linux)
+        if: runner.os == 'Linux'
         run: |
           cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} ${{ matrix.artifact }}
           chmod +x ${{ matrix.artifact }}
 
+      # macOS: create .app bundle and .dmg
+      - name: Package DMG (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Create .app bundle structure
+          APP_NAME="Renzora Launcher.app"
+          mkdir -p "$APP_NAME/Contents/MacOS"
+          mkdir -p "$APP_NAME/Contents/Resources"
+
+          # Copy binary
+          cp app/target/${{ matrix.target }}/release/${{ matrix.binary }} "$APP_NAME/Contents/MacOS/Renzora Launcher"
+          chmod +x "$APP_NAME/Contents/MacOS/Renzora Launcher"
+
+          # Create Info.plist
+          cat > "$APP_NAME/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>Renzora Launcher</string>
+            <key>CFBundleDisplayName</key>
+            <string>Renzora Launcher</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.renzora.launcher</string>
+            <key>CFBundleVersion</key>
+            <string>0.1.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>0.1.0</string>
+            <key>CFBundleExecutable</key>
+            <string>Renzora Launcher</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>12.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          # Create DMG
+          brew install create-dmg || true
+          create-dmg \
+            --volname "Renzora Launcher" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon "Renzora Launcher.app" 150 190 \
+            --app-drop-link 450 190 \
+            --no-internet-enable \
+            "${{ matrix.artifact }}" \
+            "$APP_NAME" || true
+
+          # Fallback: if create-dmg fails, use hdiutil
+          if [ ! -f "${{ matrix.artifact }}" ]; then
+            hdiutil create -volname "Renzora Launcher" -srcfolder "$APP_NAME" -ov -format UDZO "${{ matrix.artifact }}"
+          fi
+
       - name: Compress with UPX (brute)
+        if: runner.os != 'macOS'
         run: upx --brute ${{ matrix.artifact }} || true
 
       - name: Upload artifact
