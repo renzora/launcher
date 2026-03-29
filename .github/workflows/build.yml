@@ -34,7 +34,7 @@ jobs:
             binary: target/x86_64-unknown-linux-gnu/release/renzora-launcher
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            artifact: renzora-launcher-linux-arm64.AppImage
+            artifact: renzora-launcher-linux-arm64.tar.gz
             binary: target/aarch64-unknown-linux-gnu/release/renzora-launcher
 
     runs-on: ${{ matrix.os }}
@@ -85,9 +85,20 @@ jobs:
           cp -r dist package/dist
           cd package && 7z a -tzip "../${{ matrix.artifact }}" . && cd ..
 
-      # Linux — create AppImage
+      # Linux ARM64 — tarball (appimagetool doesn't support ARM well)
+      - name: Package Linux ARM64
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          mkdir -p renzora-launcher
+          cp "${{ matrix.binary }}" renzora-launcher/renzora-launcher
+          chmod +x renzora-launcher/renzora-launcher
+          cp -r dist renzora-launcher/dist
+          cp icon.png renzora-launcher/icon.png
+          tar czf "${{ matrix.artifact }}" renzora-launcher
+
+      # Linux x64 — create AppImage
       - name: Package Linux
-        if: startsWith(matrix.os, 'ubuntu')
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
           # Create AppDir structure
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
