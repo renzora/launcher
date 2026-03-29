@@ -127,8 +127,8 @@ jobs:
           wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${TOOL_ARCH}.AppImage" -O appimagetool
           chmod +x appimagetool
           ./appimagetool --appimage-extract
-          ARCH=$TOOL_ARCH squashfs-root/AppRun AppDir "${{ matrix.artifact }}"
-          ls -la *.AppImage || true
+          export ARCH=$TOOL_ARCH
+          squashfs-root/AppRun AppDir "${{ matrix.artifact }}"
 
       # macOS — create .app bundle and .dmg
       - name: Package macOS
