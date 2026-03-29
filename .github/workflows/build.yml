@@ -168,8 +168,45 @@ jobs:
           </plist>
           PLIST
 
-          # Create DMG
-          hdiutil create -volname "Renzora Launcher" -srcfolder "$APP" -ov -format UDZO "${{ matrix.artifact }}"
+          # Create DMG with drag-to-Applications layout
+          DMG_DIR="dmg_contents"
+          mkdir -p "$DMG_DIR"
+          cp -r "$APP" "$DMG_DIR/"
+          ln -s /Applications "$DMG_DIR/Applications"
+
+          # Create temporary DMG
+          hdiutil create -volname "Renzora Launcher" -srcfolder "$DMG_DIR" -ov -format UDRW -size 200m tmp.dmg
+
+          # Mount and set window layout
+          DEVICE=$(hdiutil attach -readwrite -noverify tmp.dmg | grep '/Volumes/' | awk '{print $1}')
+          VOLUME="/Volumes/Renzora Launcher"
+
+          # AppleScript to set DMG window appearance
+          osascript <<APPLESCRIPT
+          tell application "Finder"
+            tell disk "Renzora Launcher"
+              open
+              set current view of container window to icon view
+              set toolbar visible of container window to false
+              set statusbar visible of container window to false
+              set the bounds of container window to {100, 100, 640, 400}
+              set viewOptions to the icon view options of container window
+              set arrangement of viewOptions to not arranged
+              set icon size of viewOptions to 80
+              set position of item "Renzora Launcher.app" of container window to {140, 150}
+              set position of item "Applications" of container window to {400, 150}
+              close
+              open
+              update without registering applications
+            end tell
+          end tell
+          APPLESCRIPT
+
+          # Finalize
+          sync
+          hdiutil detach "$DEVICE"
+          hdiutil convert tmp.dmg -format UDZO -o "${{ matrix.artifact }}"
+          rm -f tmp.dmg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
