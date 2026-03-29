@@ -13,15 +13,23 @@ jobs:
         include:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: renzora-launcher-windows.zip
+            artifact: renzora-launcher-windows-x64.zip
             binary: target/x86_64-pc-windows-msvc/release/renzora-launcher.exe
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            artifact: renzora-launcher-windows-arm64.zip
+            binary: target/aarch64-pc-windows-msvc/release/renzora-launcher.exe
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact: renzora-launcher-macos.dmg
+            artifact: renzora-launcher-macos-x64.dmg
             binary: target/x86_64-apple-darwin/release/renzora-launcher
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: renzora-launcher-macos-arm64.dmg
+            binary: target/aarch64-apple-darwin/release/renzora-launcher
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: renzora-launcher-linux.AppImage
+            artifact: renzora-launcher-linux-x64.AppImage
             binary: target/x86_64-unknown-linux-gnu/release/renzora-launcher
 
     runs-on: ${{ matrix.os }}
