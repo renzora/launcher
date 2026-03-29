@@ -1,5 +1,5 @@
 use webarcade::App;
-use webarcade::include_dir::{include_dir, Dir};
+use include_dir::{include_dir, Dir};
 
 mod config;
 mod routes;
