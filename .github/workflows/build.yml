@@ -14,15 +14,15 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact: renzora-launcher-windows.exe
-            binary: target/release/renzora-launcher.exe
+            binary: target/x86_64-pc-windows-msvc/release/renzora-launcher.exe
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact: renzora-launcher-macos
-            binary: target/release/renzora-launcher
+            binary: target/x86_64-apple-darwin/release/renzora-launcher
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact: renzora-launcher-linux
-            binary: target/release/renzora-launcher
+            binary: target/x86_64-unknown-linux-gnu/release/renzora-launcher
 
     runs-on: ${{ matrix.os }}
 
