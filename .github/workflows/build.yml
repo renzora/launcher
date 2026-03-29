@@ -87,7 +87,7 @@ jobs:
 
       # Linux — create AppImage
       - name: Package Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
           # Create AppDir structure
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
