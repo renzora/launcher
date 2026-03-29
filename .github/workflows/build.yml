@@ -17,7 +17,7 @@ jobs:
             binary: target/x86_64-pc-windows-msvc/release/renzora-launcher.exe
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact: renzora-launcher-macos
+            artifact: renzora-launcher-macos.dmg
             binary: target/x86_64-apple-darwin/release/renzora-launcher
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -45,6 +45,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev
 
+      # Generate icon.ico for Windows
+      - name: Generate Windows icon
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install imagemagick -y --no-progress
+          magick icon.png -define icon:auto-resize=256,128,64,48,32,16 icon.ico
+
       - name: Build frontend
         run: |
           npm install
@@ -53,9 +61,77 @@ jobs:
       - name: Build binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Rename binary
+      # Windows — just copy the exe (icon is embedded via build.rs)
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
         shell: bash
         run: cp "${{ matrix.binary }}" "${{ matrix.artifact }}"
+
+      # Linux — just copy the binary
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: cp "${{ matrix.binary }}" "${{ matrix.artifact }}"
+
+      # macOS — create .app bundle and .dmg
+      - name: Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          APP="Renzora Launcher.app"
+          mkdir -p "$APP/Contents/MacOS"
+          mkdir -p "$APP/Contents/Resources"
+
+          cp "${{ matrix.binary }}" "$APP/Contents/MacOS/renzora-launcher"
+          chmod +x "$APP/Contents/MacOS/renzora-launcher"
+
+          # Copy dist into the app bundle
+          cp -r dist "$APP/Contents/Resources/dist"
+
+          # Generate .icns from png
+          mkdir -p icon.iconset
+          sips -z 16 16 icon.png --out icon.iconset/icon_16x16.png
+          sips -z 32 32 icon.png --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32 icon.png --out icon.iconset/icon_32x32.png
+          sips -z 64 64 icon.png --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128 icon.png --out icon.iconset/icon_128x128.png
+          sips -z 256 256 icon.png --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256 icon.png --out icon.iconset/icon_256x256.png
+          sips -z 512 512 icon.png --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512 icon.png --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024 icon.png --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
+
+          # Info.plist
+          cat > "$APP/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>Renzora Launcher</string>
+            <key>CFBundleDisplayName</key>
+            <string>Renzora Launcher</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.renzora.launcher</string>
+            <key>CFBundleVersion</key>
+            <string>0.1.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>0.1.0</string>
+            <key>CFBundleExecutable</key>
+            <string>renzora-launcher</string>
+            <key>CFBundleIconFile</key>
+            <string>AppIcon</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>12.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          # Create DMG
+          hdiutil create -volname "Renzora Launcher" -srcfolder "$APP" -ov -format UDZO "${{ matrix.artifact }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
