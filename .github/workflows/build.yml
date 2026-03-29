@@ -118,11 +118,17 @@ jobs:
           APPRUN
           chmod +x AppDir/AppRun
 
-          # Download appimagetool, extract it (no FUSE in CI), then run
-          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          # Download appimagetool for the correct architecture
+          if [ "$(uname -m)" = "aarch64" ]; then
+            TOOL_ARCH="aarch64"
+          else
+            TOOL_ARCH="x86_64"
+          fi
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${TOOL_ARCH}.AppImage" -O appimagetool
           chmod +x appimagetool
           ./appimagetool --appimage-extract
-          ARCH=x86_64 squashfs-root/AppRun AppDir "${{ matrix.artifact }}"
+          ARCH=$TOOL_ARCH squashfs-root/AppRun AppDir "${{ matrix.artifact }}"
+          ls -la *.AppImage || true
 
       # macOS — create .app bundle and .dmg
       - name: Package macOS
