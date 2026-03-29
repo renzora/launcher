@@ -1,10 +1,15 @@
 use webarcade::App;
+use webarcade::include_dir::{include_dir, Dir};
 
 mod config;
 mod routes;
 
+// Embed frontend at compile time for release builds
+#[cfg(not(debug_assertions))]
+static DIST: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/dist");
+
 fn main() {
-    App::new("Renzora Launcher", 1280, 720)
+    let app = App::new("Renzora Launcher", 1280, 720)
         .min_size(800, 600)
         // Engine
         .route("GET",  "/api/releases",      routes::engine::handle_releases)
@@ -39,10 +44,15 @@ fn main() {
         .route("GET",  "/api/cdn",            routes::proxy::handle_cdn)
         .route("GET",  "/api/fetch",          routes::proxy::handle_fetch)
         .route("GET",  "/api/embed",          routes::proxy::handle_embed_preview)
-        // WASM preview files — served at /wasm/* so relative imports resolve naturally
+        // WASM preview files
         .route("GET",  "/wasm/renzora_preview.js",      routes::proxy::handle_wasm_js)
-        .route("GET",  "/wasm/renzora_preview_bg.wasm", routes::proxy::handle_wasm_bg)
-        // Frontend
-        .frontend("dist")
-        .run();
+        .route("GET",  "/wasm/renzora_preview_bg.wasm", routes::proxy::handle_wasm_bg);
+
+    // Release: embedded frontend (single binary). Dev: read from disk.
+    #[cfg(not(debug_assertions))]
+    let app = app.frontend_embed(&DIST);
+    #[cfg(debug_assertions)]
+    let app = app.frontend("dist");
+
+    app.run();
 }

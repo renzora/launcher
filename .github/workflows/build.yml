@@ -14,11 +14,11 @@ jobs:
         include:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: renzora-launcher-windows-x64.zip
+            artifact: renzora-launcher-windows-x64.exe
             binary: target/x86_64-pc-windows-msvc/release/renzora-launcher.exe
           - os: windows-latest
             target: aarch64-pc-windows-msvc
-            artifact: renzora-launcher-windows-arm64.zip
+            artifact: renzora-launcher-windows-arm64.exe
             binary: target/aarch64-pc-windows-msvc/release/renzora-launcher.exe
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -34,7 +34,7 @@ jobs:
             binary: target/x86_64-unknown-linux-gnu/release/renzora-launcher
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            artifact: renzora-launcher-linux-arm64.tar.gz
+            artifact: renzora-launcher-linux-arm64
             binary: target/aarch64-unknown-linux-gnu/release/renzora-launcher
 
     runs-on: ${{ matrix.os }}
@@ -75,26 +75,18 @@ jobs:
       - name: Build binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      # Windows — zip exe + dist folder
+      # Windows — single exe (frontend is embedded)
       - name: Package Windows
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: |
-          mkdir -p package
-          cp "${{ matrix.binary }}" package/renzora-launcher.exe
-          cp -r dist package/dist
-          cd package && 7z a -tzip "../${{ matrix.artifact }}" . && cd ..
+        run: cp "${{ matrix.binary }}" "${{ matrix.artifact }}"
 
-      # Linux ARM64 — tarball (appimagetool doesn't support ARM well)
+      # Linux ARM64 — single binary (frontend is embedded)
       - name: Package Linux ARM64
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          mkdir -p renzora-launcher
-          cp "${{ matrix.binary }}" renzora-launcher/renzora-launcher
-          chmod +x renzora-launcher/renzora-launcher
-          cp -r dist renzora-launcher/dist
-          cp icon.png renzora-launcher/icon.png
-          tar czf "${{ matrix.artifact }}" renzora-launcher
+          cp "${{ matrix.binary }}" "${{ matrix.artifact }}"
+          chmod +x "${{ matrix.artifact }}"
 
       # Linux x64 — create AppImage
       - name: Package Linux
@@ -105,7 +97,6 @@ jobs:
 
           cp "${{ matrix.binary }}" AppDir/usr/bin/renzora-launcher
           chmod +x AppDir/usr/bin/renzora-launcher
-          cp -r dist AppDir/usr/bin/dist
           cp icon.png AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png
           cp icon.png AppDir/renzora-launcher.png
 
@@ -151,9 +142,6 @@ jobs:
 
           cp "${{ matrix.binary }}" "$APP/Contents/MacOS/renzora-launcher"
           chmod +x "$APP/Contents/MacOS/renzora-launcher"
-
-          # Copy dist into the app bundle
-          cp -r dist "$APP/Contents/MacOS/dist"
 
           # Generate .icns from png
           mkdir -p icon.iconset
