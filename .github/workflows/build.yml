@@ -13,7 +13,7 @@ jobs:
         include:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: renzora-launcher-windows.exe
+            artifact: renzora-launcher-windows.zip
             binary: target/x86_64-pc-windows-msvc/release/renzora-launcher.exe
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -21,7 +21,7 @@ jobs:
             binary: target/x86_64-apple-darwin/release/renzora-launcher
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: renzora-launcher-linux
+            artifact: renzora-launcher-linux.AppImage
             binary: target/x86_64-unknown-linux-gnu/release/renzora-launcher
 
     runs-on: ${{ matrix.os }}
@@ -61,16 +61,53 @@ jobs:
       - name: Build binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      # Windows — just copy the exe (icon is embedded via build.rs)
+      # Windows — zip exe + dist folder
       - name: Package Windows
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: cp "${{ matrix.binary }}" "${{ matrix.artifact }}"
+        run: |
+          mkdir -p package
+          cp "${{ matrix.binary }}" package/renzora-launcher.exe
+          cp -r dist package/dist
+          cd package && 7z a -tzip "../${{ matrix.artifact }}" . && cd ..
 
-      # Linux — just copy the binary
+      # Linux — create AppImage
       - name: Package Linux
         if: matrix.os == 'ubuntu-latest'
-        run: cp "${{ matrix.binary }}" "${{ matrix.artifact }}"
+        run: |
+          # Create AppDir structure
+          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp "${{ matrix.binary }}" AppDir/usr/bin/renzora-launcher
+          chmod +x AppDir/usr/bin/renzora-launcher
+          cp -r dist AppDir/usr/bin/dist
+          cp icon.png AppDir/usr/share/icons/hicolor/256x256/apps/renzora-launcher.png
+          cp icon.png AppDir/renzora-launcher.png
+
+          # Desktop entry
+          cat > AppDir/renzora-launcher.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Renzora Launcher
+          Exec=renzora-launcher
+          Icon=renzora-launcher
+          Type=Application
+          Categories=Game;Development;
+          EOF
+
+          # AppRun
+          cat > AppDir/AppRun << 'APPRUN'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          exec "${HERE}/usr/bin/renzora-launcher" "$@"
+          APPRUN
+          chmod +x AppDir/AppRun
+
+          # Download appimagetool and create AppImage
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool AppDir "${{ matrix.artifact }}"
 
       # macOS — create .app bundle and .dmg
       - name: Package macOS
@@ -84,7 +121,7 @@ jobs:
           chmod +x "$APP/Contents/MacOS/renzora-launcher"
 
           # Copy dist into the app bundle
-          cp -r dist "$APP/Contents/Resources/dist"
+          cp -r dist "$APP/Contents/MacOS/dist"
 
           # Generate .icns from png
           mkdir -p icon.iconset
