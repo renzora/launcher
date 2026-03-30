@@ -42,8 +42,10 @@ export default function PublishPage(props) {
     const [creditName, setCreditName] = createSignal('');
     const [creditUrl, setCreditUrl] = createSignal('');
     const [filePath, setFilePath] = createSignal(null);
+    const [filePaths, setFilePaths] = createSignal([]); // multi-file
     const [fileName, setFileName] = createSignal('');
     const [fileSize, setFileSize] = createSignal(0);
+    const [zipAction, setZipAction] = createSignal('keep');
     const [thumbPath, setThumbPath] = createSignal(null);
     const [thumbName, setThumbName] = createSignal('');
     const [screenshotPaths, setScreenshotPaths] = createSignal([]);
@@ -63,7 +65,7 @@ export default function PublishPage(props) {
         const s = step();
         if (s === 2 && !name().trim()) { setError('Name is required'); return; }
         if (s === 2 && !description().trim()) { setError('Description is required'); return; }
-        if (s === 3 && !filePath()) { setError('Please select a file'); return; }
+        if (s === 3 && !filePath() && filePaths().length === 0) { setError('Please select a file'); return; }
         setError('');
         setStep(Math.min(s + 1, totalSteps));
     }
@@ -129,9 +131,22 @@ export default function PublishPage(props) {
         const result = await fetchJson('/api/upload/file-picker', { method: 'POST', body: JSON.stringify({ type: 'file', accept }) });
         if (result.path) {
             setFilePath(result.path);
+            setFilePaths([]);
             setFileName(result.name);
             setFileSize(result.size);
             if (!downloadFilename()) setDownloadFilename(result.name);
+        }
+    }
+
+    async function pickMultipleFiles() {
+        const accept = 'zip,rar,7z,lua,rhai,wgsl,fbx,obj,gltf,glb,blend,png,jpg,svg,wav,ogg,mp3,flac,ttf,otf';
+        const result = await fetchJson('/api/upload/file-picker', { method: 'POST', body: JSON.stringify({ type: 'files', accept }) });
+        if (result.files && result.files.length > 0) {
+            setFilePaths(result.files.slice(0, 20));
+            setFilePath(null);
+            setFileName(result.files.length + ' files selected');
+            setFileSize(result.files.reduce((s, f) => s + (f.size || 0), 0));
+            if (!downloadFilename()) setDownloadFilename(result.files[0].name);
         }
     }
 
@@ -169,6 +184,7 @@ export default function PublishPage(props) {
             metadata.download_filename = downloadFilename();
             metadata.licence = licence();
             metadata.ai_generated = aiGenerated();
+            metadata.zip_action = zipAction();
             if (creditName()) {
                 metadata.credit_name = creditName();
                 metadata.credit_url = creditUrl();
@@ -179,8 +195,13 @@ export default function PublishPage(props) {
         const body = {
             content_type: contentType(),
             metadata,
-            file_path: filePath(),
         };
+        // Support single file or multiple files
+        if (filePaths().length > 0) {
+            body.file_paths = filePaths().map(f => f.path);
+        } else {
+            body.file_path = filePath();
+        }
         if (thumbPath()) body.thumbnail_path = thumbPath();
         if (screenshotPaths().length > 0) body.screenshot_paths = screenshotPaths().map(s => s.path);
 
@@ -426,23 +447,75 @@ export default function PublishPage(props) {
                 <div class="space-y-4 p-5 bg-base-200/30 border border-white/[0.04] rounded-xl">
                     <h2 class="text-sm font-semibold">{contentType() === 'game' ? 'Game Files' : 'Asset Files'}</h2>
 
-                    {/* Main file */}
+                    {/* Main file(s) */}
                     <div>
-                        <label class="block text-xs text-base-content/50 mb-1">{contentType() === 'game' ? 'Game File' : 'Asset File'} <span class="text-error">*</span></label>
-                        <button class="w-full p-4 border-2 border-dashed border-white/[0.06] rounded-xl hover:border-primary/30 transition-colors text-center"
-                            onClick={pickFile}>
-                            <Show when={filePath()} fallback={
-                                <div>
-                                    <svg class="w-6 h-6 mx-auto text-base-content/20 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                    <p class="text-xs text-base-content/40">Click to select file</p>
-                                </div>
-                            }>
-                                <div class="text-xs">
-                                    <span class="font-medium text-primary">{fileName()}</span>
-                                    <span class="text-base-content/30 ml-1">({formatSize(fileSize())})</span>
-                                </div>
+                        <label class="block text-xs text-base-content/50 mb-1">{contentType() === 'game' ? 'Game File' : 'Asset File(s)'} <span class="text-error">*</span></label>
+                        <div class="flex gap-2 mb-2">
+                            <button class="flex-1 p-4 border-2 border-dashed border-white/[0.06] rounded-xl hover:border-primary/30 transition-colors text-center"
+                                onClick={pickFile}>
+                                <Show when={filePath() && filePaths().length === 0} fallback={
+                                    <div>
+                                        <svg class="w-6 h-6 mx-auto text-base-content/20 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        <p class="text-xs text-base-content/40">Single file</p>
+                                    </div>
+                                }>
+                                    <div class="text-xs">
+                                        <span class="font-medium text-primary">{fileName()}</span>
+                                        <span class="text-base-content/30 ml-1">({formatSize(fileSize())})</span>
+                                    </div>
+                                </Show>
+                            </button>
+                            <Show when={contentType() === 'asset'}>
+                                <button class="flex-1 p-4 border-2 border-dashed border-white/[0.06] rounded-xl hover:border-primary/30 transition-colors text-center"
+                                    onClick={pickMultipleFiles}>
+                                    <Show when={filePaths().length > 0} fallback={
+                                        <div>
+                                            <svg class="w-6 h-6 mx-auto text-base-content/20 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            <p class="text-xs text-base-content/40">Multiple files</p>
+                                        </div>
+                                    }>
+                                        <div class="text-xs">
+                                            <span class="font-medium text-primary">{filePaths().length} files</span>
+                                            <span class="text-base-content/30 ml-1">({formatSize(fileSize())})</span>
+                                        </div>
+                                    </Show>
+                                </button>
                             </Show>
-                        </button>
+                        </div>
+
+                        {/* Zip action toggle */}
+                        <Show when={filePath() && fileName().toLowerCase().endsWith('.zip') && contentType() === 'asset'}>
+                            <div class="p-3 bg-base-300/30 border border-white/[0.04] rounded-lg mb-2">
+                                <p class="text-[10px] text-base-content/40 mb-1.5">This is a .zip file. How should it be stored?</p>
+                                <div class="flex gap-3">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name="zip_action" class="radio radio-xs radio-primary"
+                                            checked={zipAction() === 'keep'} onChange={() => setZipAction('keep')} />
+                                        <span class="text-xs text-base-content/60">Keep as zip</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name="zip_action" class="radio radio-xs radio-primary"
+                                            checked={zipAction() === 'extract'} onChange={() => setZipAction('extract')} />
+                                        <span class="text-xs text-base-content/60">Extract contents</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </Show>
+
+                        {/* Multi-file list */}
+                        <Show when={filePaths().length > 0}>
+                            <div class="space-y-1 max-h-32 overflow-y-auto">
+                                <For each={filePaths()}>
+                                    {(f) => (
+                                        <div class="flex items-center gap-2 px-2.5 py-1.5 bg-base-300/20 rounded-md text-[10px]">
+                                            <svg class="w-3 h-3 text-base-content/30 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                                            <span class="flex-1 truncate text-base-content/60">{f.name}</span>
+                                            <span class="text-base-content/25">{formatSize(f.size)}</span>
+                                        </div>
+                                    )}
+                                </For>
+                            </div>
+                        </Show>
                     </div>
 
                     {/* Thumbnail */}

@@ -67,26 +67,21 @@ pub fn handle_publish(req: Request) -> Response {
         Some(m) => m.clone(),
         None => return Response::json(&serde_json::json!({ "error": "Missing metadata" })),
     };
-    let file_path = match body.get("file_path").and_then(|v| v.as_str()) {
-        Some(p) => p.to_string(),
-        None => return Response::json(&serde_json::json!({ "error": "Missing file_path" })),
+
+    // Support single file_path or multiple file_paths
+    let file_paths: Vec<String> = if let Some(paths) = body.get("file_paths").and_then(|v| v.as_array()) {
+        paths.iter().filter_map(|v| v.as_str().map(String::from)).collect()
+    } else if let Some(p) = body.get("file_path").and_then(|v| v.as_str()) {
+        vec![p.to_string()]
+    } else {
+        return Response::json(&serde_json::json!({ "error": "Missing file_path or file_paths" }));
     };
+
     let thumbnail_path = body.get("thumbnail_path").and_then(|v| v.as_str()).map(|s| s.to_string());
     let screenshot_paths: Vec<String> = body.get("screenshot_paths")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
         .unwrap_or_default();
-
-    // Read main file
-    let file_data = match std::fs::read(&file_path) {
-        Ok(d) => d,
-        Err(e) => return Response::json(&serde_json::json!({ "error": format!("Failed to read file: {}", e) })),
-    };
-    let file_name = std::path::Path::new(&file_path)
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("asset.zip")
-        .to_string();
 
     // Build multipart form
     let client = reqwest::blocking::Client::builder()
@@ -98,10 +93,23 @@ pub fn handle_publish(req: Request) -> Response {
     let metadata_json = serde_json::to_string(&metadata).unwrap_or_default();
 
     let mut form = reqwest::blocking::multipart::Form::new()
-        .text("metadata", metadata_json)
-        .part("file", reqwest::blocking::multipart::Part::bytes(file_data)
+        .text("metadata", metadata_json);
+
+    // Append file(s)
+    for file_path in &file_paths {
+        let file_data = match std::fs::read(file_path) {
+            Ok(d) => d,
+            Err(e) => return Response::json(&serde_json::json!({ "error": format!("Failed to read file: {}", e) })),
+        };
+        let file_name = std::path::Path::new(file_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("asset.zip")
+            .to_string();
+        form = form.part("file", reqwest::blocking::multipart::Part::bytes(file_data)
             .file_name(file_name)
             .mime_str("application/octet-stream").unwrap());
+    }
 
     // Thumbnail
     if let Some(thumb_path) = &thumbnail_path {
