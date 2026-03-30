@@ -36,6 +36,9 @@ fn main() {
         .route("POST", "/api/check-owned",    routes::marketplace::handle_check_owned)
         .route("POST", "/api/comment",        routes::marketplace::handle_add_comment)
         .route("POST", "/api/review",         routes::marketplace::handle_submit_review)
+        // Upload / Publish
+        .route("POST", "/api/upload/file-picker", routes::upload::handle_file_picker)
+        .route("POST", "/api/upload/publish",     routes::upload::handle_publish)
         // Updater
         .route("GET",  "/api/updater/check",  routes::updater::handle_check_update)
         .route("POST", "/api/updater/update", routes::updater::handle_update)

@@ -19,4 +19,5 @@ export {
     IconBrandGithub,
     IconBrandYoutube,
     IconBrandDiscord,
+    IconUpload,
 } from '@tabler/icons-solidjs';

@@ -1,5 +1,5 @@
 import { For, Show } from 'solid-js';
-import { IconHome, IconStore, IconLibrary, IconEngine, IconSettings, IconUser, IconMarketplace, IconBrandGithub, IconBrandYoutube, IconBrandDiscord } from '../icons.jsx';
+import { IconHome, IconStore, IconLibrary, IconEngine, IconSettings, IconUser, IconMarketplace, IconUpload, IconBrandGithub, IconBrandYoutube, IconBrandDiscord } from '../icons.jsx';
 
 const NAV_ITEMS = [
     { id: 'home', label: 'Home', icon: IconHome },
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
     { id: 'store', label: 'Game Store', icon: IconStore },
     { id: 'marketplace', label: 'Marketplace', icon: IconMarketplace },
     { id: 'library', label: 'Library', icon: IconLibrary },
+    { id: 'publish', label: 'Publish', icon: IconUpload },
     { id: 'settings', label: 'Settings', icon: IconSettings },
 ];
 

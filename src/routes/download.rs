@@ -118,7 +118,11 @@ fn do_download(
         .to_string();
 
     let _ = std::fs::create_dir_all(install_dir);
-    let filename = download_url.split('/').last().unwrap_or(asset_name);
+    // Prefer download_filename from API (human-readable), fall back to URL-derived name
+    let filename = data.get("download_filename")
+        .and_then(|f| f.as_str())
+        .filter(|f| !f.is_empty())
+        .unwrap_or_else(|| download_url.split('/').last().unwrap_or(asset_name));
     let dest = install_dir.join(filename);
 
     // Stream download with progress

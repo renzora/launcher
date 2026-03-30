@@ -10,6 +10,7 @@ import MarketplacePage from './pages/MarketplacePage.jsx';
 import EnginePage from './pages/EnginePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import AssetDetail from './pages/AssetDetail.jsx';
+import PublishPage from './pages/PublishPage.jsx';
 
 export default function App() {
     useRenzoraTheme();
@@ -87,6 +88,7 @@ export default function App() {
                     <Show when={active() === 'library'}><LibraryPage setActive={setActive} setShowLogin={setShowLogin} /></Show>
                     <Show when={active() === 'engine'}><EnginePage releases={releases} installed={installed} refetchInstalled={refetchInstalled} /></Show>
                     <Show when={active() === 'settings'}><SettingsPage config={config} refetchConfig={refetchConfig} setShowLogin={setShowLogin} /></Show>
+                    <Show when={active() === 'publish'}><PublishPage config={config} /></Show>
 
                     <Show when={viewingAsset()}>
                         <div class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setViewingAsset(null)} />
